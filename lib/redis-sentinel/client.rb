@@ -2,6 +2,11 @@ require "redis"
 
 class Redis::Client
   DEFAULT_FAILOVER_RECONNECT_WAIT_SECONDS = 0.1
+  DEFAULTS = {
+    master_name: lambda { ENV['REDIS_MASTER_NAME'] },
+    sentinels: lambda { ENV['REDIS_SENTINELS'] },
+    failover_reconnect_wait_seconds: 0.1
+  }
 
   class_eval do
     def initialize_with_sentinel(options={})
@@ -9,8 +14,7 @@ class Redis::Client
       @master_password = fetch_option(options, :master_password)
       @sentinels = fetch_option(options, :sentinels)
       @failover_reconnect_timeout = fetch_option(options, :failover_reconnect_timeout)
-      @failover_reconnect_wait = fetch_option(options, :failover_reconnect_wait) ||
-                                 DEFAULT_FAILOVER_RECONNECT_WAIT_SECONDS
+      @failover_reconnect_wait = fetch_option(options, :failover_reconnect_wait)
 
       initialize_without_sentinel(options)
     end
@@ -81,7 +85,13 @@ class Redis::Client
   private
 
     def fetch_option(options, key)
-      options.delete(key) || options.delete(key.to_s)
+      defaults = DEFAULTS.dup
+
+      defaults.each do |k, v|
+        defaults[k] = v.call if v.respond_to?(:call)
+      end
+
+      options.delete(key) || options.delete(key.to_s) || defaults[key]
     end
 
     def redis_sentinels
