@@ -1,8 +1,7 @@
 require "redis"
 
 class Redis::Client
-  DEFAULT_FAILOVER_RECONNECT_WAIT_SECONDS = 0.1
-  DEFAULTS = {
+  SENTINEL_DEFAULTS = {
     master_name: lambda { ENV['REDIS_MASTER_NAME'] },
     sentinels: lambda { ENV['REDIS_SENTINELS'] },
     failover_reconnect_wait_seconds: 0.1
@@ -85,7 +84,7 @@ class Redis::Client
   private
 
     def fetch_option(options, key)
-      defaults = DEFAULTS.dup
+      defaults = SENTINEL_DEFAULTS.dup
 
       defaults.each do |k, v|
         defaults[k] = v.call if v.respond_to?(:call)
